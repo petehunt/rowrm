@@ -8,6 +8,11 @@
 - fully type-safe, with full autocompletion
 - lots of escape hatches to drop into raw SQL when you need it
 
+## limitations
+
+- not used much in production (but there's very little code so it's probably safe)
+- only tested extensively with SQLite, probably needs minor modifications for Postgres and MySQL
+
 ## example: generating TypeScript interfaces for your SQL schema
 
 ```
