@@ -73,18 +73,18 @@ test("smoke test", async (t) => {
     "users",
     sql`bio=${"my name is alice"}`
   );
-  t.deepEqual(aliceByPkey.get, {
+  t.deepEqual(aliceByPkey, {
     user_id: 1,
     screen_name: "@alice",
     bio: "my name is alice",
     age: 100,
   });
-  t.deepEqual(aliceByPkey.get, aliceByScreenName.get);
-  t.deepEqual(aliceByPkey.get, aliceBySql.get);
+  t.deepEqual(aliceByPkey, aliceByScreenName);
+  t.deepEqual(aliceByPkey, aliceBySql);
 
   // fetch many
   const aliceByMany = await db.selectAll("users", sql`screen_name='@alice'`);
-  t.deepEqual(aliceByMany, [aliceByPkey.get]);
+  t.deepEqual(aliceByMany, [aliceByPkey]);
 
   const photosByAlice = await db.getAll("photos", { owner_user_id: 1 });
   t.deepEqual(photosByAlice, [
@@ -101,7 +101,7 @@ test("smoke test", async (t) => {
   t.deepEqual(photosByBob, []);
 
   await db.set("users", { user_id: 1 }, { bio: "bio deleted", age: 200 });
-  t.deepEqual((await db.getOne("users", { user_id: 1 })).get, {
+  t.deepEqual(await db.getOne("users", { user_id: 1 }), {
     user_id: 1,
     screen_name: "@alice",
     bio: "bio deleted",

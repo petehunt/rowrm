@@ -1,5 +1,4 @@
 import sql from "@databases/sql";
-import { Option, some, none } from "ts-option";
 import invariant from "tiny-invariant";
 
 type Sql = ReturnType<typeof sql>;
@@ -121,13 +120,13 @@ export class Db<TTables> {
   async selectOne<TTableName extends keyof TTables>(
     tableName: TTableName,
     where: Sql = sql`1`
-  ): Promise<Option<TTables[TTableName]>> {
+  ): Promise<TTables[TTableName] | null> {
     const rows = await this.selectAll(tableName, where);
     invariant(rows.length < 2, "more than one row matched this query");
     if (rows.length !== 1) {
-      return none;
+      return null;
     }
-    return some(rows[0]);
+    return rows[0];
   }
 
   private rowToWhere(row: object) {
@@ -151,13 +150,13 @@ export class Db<TTables> {
   async getOne<TTableName extends keyof TTables>(
     tableName: TTableName,
     values: Partial<TTables[TTableName]>
-  ): Promise<Option<TTables[TTableName]>> {
+  ): Promise<TTables[TTableName] | null> {
     const rows = await this.getAll(tableName, values);
     invariant(rows.length < 2, "more than one row matched this query");
     if (rows.length !== 1) {
-      return none;
+      return null;
     }
-    return some(rows[0]);
+    return rows[0];
   }
 }
 

@@ -27,7 +27,6 @@
   },
   "dependencies": {
     "@databases/sql": "^2.1.0",
-    "tiny-invariant": "^1.1.0",
-    "ts-option": "^2.1.0"
+    "tiny-invariant": "^1.1.0"
   }
 }
