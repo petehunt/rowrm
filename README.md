@@ -88,7 +88,7 @@ const elderlyUsers = await db.getAllBySql("users", sql`age >= ${ELDERLY_AGE} ORD
 
 ```
 // maxAge is of type any
-const [{ maxAge }] = await db.underlyingDb.query(sql`select max(age) as maxAge from users`)
+const [{ maxAge }] = await db.query(sql`select max(age) as maxAge from users`)
 ```
 
 ## example: update / delete

@@ -113,7 +113,7 @@ test("smoke test", async (t) => {
   ]);
 
   // raw untyped query
-  const [{ maxAge }] = await db.underlyingDb.query(
+  const [{ maxAge }] = await db.query(
     sql`select max(age) as maxAge from users`
   );
   t.equal(maxAge, 100);
