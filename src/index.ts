@@ -1,8 +1,16 @@
 import sql from "@databases/sql";
 import invariant from "tiny-invariant";
 
+export { sql };
+
+/**
+ * SQL query fragment
+ */
 type Sql = ReturnType<typeof sql>;
 
+/**
+ * A DB-independent DatabaseTransaction or DatabaseConnection
+ */
 interface Queryable {
   query(sql: Sql): Promise<any[]>;
 }
@@ -12,6 +20,9 @@ class DbError extends Error {}
 export class Db<TTables> {
   constructor(public readonly underlyingDb: Queryable) {}
 
+  /**
+   * Issues a query directly to the underlying data store
+   */
   async query(query: Sql): Promise<any[]> {
     try {
       const rows = await this.underlyingDb.query(query);
@@ -47,6 +58,9 @@ export class Db<TTables> {
     );
   }
 
+  /**
+   * REPLACE INTO
+   */
   insertOrReplace<TTableName extends keyof TTables>(
     tableName: TTableName,
     ...rows: TTables[TTableName][]
@@ -54,6 +68,9 @@ export class Db<TTables> {
     return this.insert(sql`replace into`, tableName, ...rows);
   }
 
+  /**
+   * INSERT OR IGNORE INTO
+   */
   insertOrIgnore<TTableName extends keyof TTables>(
     tableName: TTableName,
     ...rows: TTables[TTableName][]
@@ -61,14 +78,20 @@ export class Db<TTables> {
     return this.insert(sql`insert or ignore into`, tableName, ...rows);
   }
 
-  insertOrError<TTableName extends keyof TTables>(
+  /**
+   * INSERT INTO
+   */
+  insertOrThrow<TTableName extends keyof TTables>(
     tableName: TTableName,
     ...rows: TTables[TTableName][]
   ): Promise<void> {
     return this.insert(sql`insert into`, tableName, ...rows);
   }
 
-  async update<TTableName extends keyof TTables>(
+  /**
+   * UPDATE with a SQL predicate
+   */
+  async setBySql<TTableName extends keyof TTables>(
     tableName: TTableName,
     where: Sql,
     row: Partial<TTables[TTableName]>
@@ -85,29 +108,41 @@ export class Db<TTables> {
     return rows;
   }
 
+  /**
+   * UPDATE with a partial object predicate
+   */
   set<TTableName extends keyof TTables>(
     tableName: TTableName,
     whereValues: Partial<TTables[TTableName]>,
     updateValues: Partial<TTables[TTableName]>
   ) {
-    return this.update(tableName, this.rowToWhere(whereValues), updateValues);
+    return this.setBySql(tableName, this.rowToWhere(whereValues), updateValues);
   }
 
-  async deleteFrom<TTableName extends keyof TTables>(
+  /**
+   * DELETE FROM with a SQL predicate
+   */
+  async delBySql<TTableName extends keyof TTables>(
     tableName: TTableName,
     where: Sql
   ) {
     await this.query(sql`delete from ${sql.ident(tableName)} where ${where}`);
   }
 
+  /**
+   * DELETE FROM with a partial object predicate
+   */
   async del<TTableName extends keyof TTables>(
     tableName: TTableName,
     values: Partial<TTables[TTableName]>
   ) {
-    await this.deleteFrom(tableName, this.rowToWhere(values));
+    await this.delBySql(tableName, this.rowToWhere(values));
   }
 
-  async selectAll<TTableName extends keyof TTables>(
+  /**
+   * SELECT * with a SQL predicate
+   */
+  async getAllBySql<TTableName extends keyof TTables>(
     tableName: TTableName,
     where: Sql = sql`1`
   ): Promise<TTables[TTableName][]> {
@@ -117,11 +152,14 @@ export class Db<TTables> {
     return rows;
   }
 
-  async selectOne<TTableName extends keyof TTables>(
+  /**
+   * SELECT * with a SQL predicate, throws if > 1 row matches
+   */
+  async getOneBySql<TTableName extends keyof TTables>(
     tableName: TTableName,
     where: Sql = sql`1`
   ): Promise<TTables[TTableName] | null> {
-    const rows = await this.selectAll(tableName, where);
+    const rows = await this.getAllBySql(tableName, sql`${where} limit 2`);
     invariant(rows.length < 2, "more than one row matched this query");
     if (rows.length !== 1) {
       return null;
@@ -138,15 +176,21 @@ export class Db<TTables> {
     );
   }
 
+  /**
+   * SELECT * with a partial object predicate
+   */
   async getAll<TTableName extends keyof TTables>(
     tableName: TTableName,
     values: Partial<TTables[TTableName]>
   ): Promise<TTables[TTableName][]> {
     const where = this.rowToWhere(values);
-    const rows = this.selectAll(tableName, where);
+    const rows = this.getAllBySql(tableName, where);
     return rows;
   }
 
+  /**
+   * SELECT * with a partial object predicate, throws if > 1 row matches
+   */
   async getOne<TTableName extends keyof TTables>(
     tableName: TTableName,
     values: Partial<TTables[TTableName]>

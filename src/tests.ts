@@ -47,12 +47,12 @@ interface DbTables {
 test("smoke test", async (t) => {
   const db = new Db<DbTables>(connect());
   await runScript(db.underlyingDb, SCHEMA);
-  await db.insertOrError(
+  await db.insertOrThrow(
     "users",
     { user_id: 1, screen_name: "@alice", bio: "my name is alice", age: 100 },
     { user_id: 2, screen_name: "@bob" }
   );
-  await db.insertOrError(
+  await db.insertOrThrow(
     "photos",
     {
       photo_id: 1,
@@ -68,8 +68,10 @@ test("smoke test", async (t) => {
   );
 
   const aliceByPkey = await db.getOne("users", { user_id: 1 });
-  const aliceByScreenName = await db.getOne("users", { screen_name: "@alice" });
-  const aliceBySql = await db.selectOne(
+  const aliceByScreenName = await db.getOne("users", {
+    screen_name: "@alice",
+  });
+  const aliceBySql = await db.getOneBySql(
     "users",
     sql`bio=${"my name is alice"}`
   );
@@ -83,7 +85,7 @@ test("smoke test", async (t) => {
   t.deepEqual(aliceByPkey, aliceBySql);
 
   // fetch many
-  const aliceByMany = await db.selectAll("users", sql`screen_name='@alice'`);
+  const aliceByMany = await db.getAllBySql("users", sql`screen_name='@alice'`);
   t.deepEqual(aliceByMany, [aliceByPkey]);
 
   const photosByAlice = await db.getAll("photos", { owner_user_id: 1 });
