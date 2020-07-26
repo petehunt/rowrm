@@ -168,8 +168,12 @@ export class Db<TTables> {
   }
 
   private rowToWhere(row: object) {
+    const entries = Object.entries(row);
+    if (entries.length === 0) {
+      return sql`1`;
+    }
     return sql.join(
-      Object.entries(row).map(
+      entries.map(
         ([columnName, value]) => sql`${sql.ident(columnName)} = ${value}`
       ),
       sql` and `
@@ -181,10 +185,50 @@ export class Db<TTables> {
    */
   async getAll<TTableName extends keyof TTables>(
     tableName: TTableName,
-    values: Partial<TTables[TTableName]>
+    values: Partial<TTables[TTableName]>,
+    options?: {
+      orderBy: keyof TTables[TTableName] | Array<keyof TTables[TTableName]>;
+      direction?: "asc" | "desc";
+      limit?: number;
+    }
   ): Promise<TTables[TTableName][]> {
     const where = this.rowToWhere(values);
-    const rows = this.getAllBySql(tableName, where);
+    let query = where;
+    if (options) {
+      invariant(
+        !Array.isArray(options.orderBy) || options.orderBy.length > 0,
+        "must have at least 1 element in orderBy array"
+      );
+      const orderByColumns = Array.isArray(options.orderBy)
+        ? sql.join(
+            options.orderBy.map((columnName) => sql.ident(columnName)),
+            sql`,`
+          )
+        : sql.ident(options.orderBy);
+      invariant(
+        !options.direction ||
+          options.direction === "asc" ||
+          options.direction === "desc",
+        `direction must be 'asc' or 'desc'; got ${options.direction}`
+      );
+      const direction =
+        options.direction === "asc"
+          ? sql`asc`
+          : options.direction === "desc"
+          ? sql`desc`
+          : sql`asc`;
+
+      query = sql`${query} order by ${orderByColumns} ${direction}`;
+
+      if (typeof options.limit !== "undefined") {
+        invariant(
+          typeof options.limit === "number",
+          `limit must be a number; got ${options.limit}`
+        );
+        query = sql`${query} limit ${options.limit}`;
+      }
+    }
+    const rows = this.getAllBySql(tableName, query);
     return rows;
   }
 

@@ -50,7 +50,7 @@ test("smoke test", async (t) => {
   await db.insertOrThrow(
     "users",
     { user_id: 1, screen_name: "@alice", bio: "my name is alice", age: 100 },
-    { user_id: 2, screen_name: "@bob" }
+    { user_id: 2, screen_name: "@bob", age: 99 }
   );
   await db.insertOrThrow(
     "photos",
@@ -117,6 +117,29 @@ test("smoke test", async (t) => {
     sql`select max(age) as maxAge from users`
   );
   t.equal(maxAge, 100);
+
+  // order by / limit
+  const usersOrderedByAgeAsc = await db.getAll("users", {}, { orderBy: "age" });
+  t.deepEqual(
+    usersOrderedByAgeAsc.map((user) => user.screen_name),
+    ["@bob", "@alice"]
+  );
+  const usersOrderedByAgeDesc = await db.getAll(
+    "users",
+    {},
+    { orderBy: "age", direction: "desc" }
+  );
+  t.deepEqual(
+    usersOrderedByAgeDesc.map((user) => user.screen_name),
+    ["@alice", "@bob"]
+  );
+  const oldestUser = await db.getAll(
+    "users",
+    {},
+    { orderBy: ["age"], limit: 1, direction: "desc" }
+  );
+  t.equal(oldestUser.length, 1);
+  t.equal(oldestUser[0].screen_name, "@alice");
 
   // update / delete
   await db.set("users", { user_id: 1 }, { bio: "bio deleted", age: 200 });

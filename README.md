@@ -74,6 +74,14 @@ const aliceByPkey = await db.getOne("users", { user_id: 1 });
 
 // photosByAlice is of type DbTables["photos"][]
 const photosByAlice = await db.getAll("photos", { owner_user_id: 1 });
+
+// you can add sorting criteria as well. all typesafe!
+// you can provide an array of `orderBy` columns if you want to sort by multiple columns
+const oldestUser = await db.getAll(
+  "users",
+  {},
+  { orderBy: "age", limit: 1, direction: "desc" }
+);
 ```
 
 ## example: drop into raw SQL for WHERE clauses
