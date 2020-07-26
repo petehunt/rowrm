@@ -6,7 +6,9 @@
   "typings": "dist/index.d.ts",
   "scripts": {
     "test": "ts-node src/tests.ts",
-    "start": "ts-node-dev --transpile-only --respawn --no-notify src/tests.ts"
+    "start": "ts-node-dev --transpile-only --respawn --no-notify src/tests.ts",
+    "build": "mkdir -p dist/ ; tsc",
+    "preublishOnly": "npm run build"
   },
   "author": "Pete Hunt <floydophone@gmail.com>",
   "license": "MIT",
