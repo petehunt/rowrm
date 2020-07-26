@@ -102,6 +102,23 @@ test("smoke test", async (t) => {
   const photosByBob = await db.getAll("photos", { owner_user_id: 2 });
   t.deepEqual(photosByBob, []);
 
+  // inequality with ordering
+  const ELDERLY_AGE = 100;
+  const elderlyUsers = await db.getAllBySql(
+    "users",
+    sql`age >= ${ELDERLY_AGE} ORDER BY age DESC`
+  );
+  t.deepEqual(elderlyUsers, [
+    { user_id: 1, screen_name: "@alice", bio: "my name is alice", age: 100 },
+  ]);
+
+  // raw untyped query
+  const [{ maxAge }] = await db.underlyingDb.query(
+    sql`select max(age) as maxAge from users`
+  );
+  t.equal(maxAge, 100);
+
+  // update / delete
   await db.set("users", { user_id: 1 }, { bio: "bio deleted", age: 200 });
   t.deepEqual(await db.getOne("users", { user_id: 1 }), {
     user_id: 1,
