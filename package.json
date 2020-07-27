@@ -1,6 +1,6 @@
 {
   "name": "rowrm",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Lightweight \"\"\"ORM\"\"\" for when you don't need joins.",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -8,7 +8,7 @@
     "test": "ts-node src/tests.ts",
     "start": "ts-node-dev --transpile-only --respawn --no-notify src/tests.ts",
     "build": "mkdir -p dist/ ; tsc",
-    "preublishOnly": "npm run build"
+    "prepublishOnly": "npm run build"
   },
   "author": "Pete Hunt <floydophone@gmail.com>",
   "license": "MIT",
