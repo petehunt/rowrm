@@ -153,4 +153,18 @@ test("smoke test", async (t) => {
 
   await db.del("photos", { owner_user_id: 1 });
   t.deepEqual(await db.getAll("photos", { owner_user_id: 1 }), []);
+
+  t.equal(await db.getOne("users", { user_id: 4 }), null);
+  try {
+    await db.getOneOrThrow("users", { user_id: 4 });
+    t.fail();
+  } catch (e) {
+    t.equal(
+      e.toString(),
+      "Error: Invariant failed: less than one row matched this query"
+    );
+  }
+
+  await db.getOneOrThrow("users", { user_id: 1 });
+  t.pass();
 });

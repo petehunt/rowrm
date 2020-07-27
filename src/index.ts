@@ -167,6 +167,18 @@ export class Db<TTables> {
     return rows[0];
   }
 
+  /**
+   * SELECT * with a SQL predicate, throws if < 1 or > 1 row matches
+   */
+  async getOneBySqlOrThrow<TTableName extends keyof TTables>(
+    tableName: TTableName,
+    where: Sql = sql`1`
+  ): Promise<TTables[TTableName]> {
+    const rv = await this.getOneBySql(tableName, where);
+    invariant(rv, "less than one row matched this query");
+    return rv;
+  }
+
   private rowToWhere(row: object) {
     const entries = Object.entries(row);
     if (entries.length === 0) {
@@ -245,6 +257,18 @@ export class Db<TTables> {
       return null;
     }
     return rows[0];
+  }
+
+  /**
+   * SELECT * with a partial object predicate, throws if < 1 or > 1 row matches
+   */
+  async getOneOrThrow<TTableName extends keyof TTables>(
+    tableName: TTableName,
+    values: Partial<TTables[TTableName]>
+  ): Promise<TTables[TTableName]> {
+    const rv = await this.getOne(tableName, values);
+    invariant(rv, "less than one row matched this query");
+    return rv;
   }
 }
 
