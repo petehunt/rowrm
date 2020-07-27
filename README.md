@@ -1,7 +1,7 @@
 # rowrm
 
 
-`rowrm` is a single-table [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) built on top of [@databases](https://www.atdatabases.org/).
+`rowrm` is a single-table [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) built on top of [@databases](https://www.atdatabases.org/) in TypeScript.
 
 more specifically, `rowrm` is a library for really convenient, typesafe access to databases where you only need to `insert`, `delete`, `update`, and `select * from one_table where ...`. a lot of apps fit into this category!
 
