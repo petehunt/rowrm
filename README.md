@@ -7,7 +7,7 @@ more specifically, `rowrm` is a library for really convenient, typesafe access t
 
 ## cool features
 
-- can codegen TypeScript interfaces for your SQL schema, just copy and paste them into your project!
+- can codegen TypeScript interfaces for your SQL schema; just copy and paste them into your project!
 - fully type-safe, with full autocompletion
 - lots of escape hatches to drop into raw SQL when you need it
 
