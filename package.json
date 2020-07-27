@@ -1,8 +1,8 @@
 {
   "name": "rowrm",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Lightweight \"\"\"ORM\"\"\" for when you don't need joins.",
-  "main": "dist/index.ts",
+  "main": "dist/index.js",
   "typings": "dist/index.d.ts",
   "scripts": {
     "test": "ts-node src/tests.ts",
