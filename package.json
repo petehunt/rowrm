@@ -1,5 +1,5 @@
 {
-  "name": "st-orm",
+  "name": "rowrm",
   "version": "0.0.7",
   "description": "Lightweight \"\"\"ORM\"\"\" for when you don't need joins.",
   "main": "dist/index.js",
