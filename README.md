@@ -62,7 +62,7 @@ const db = new Db<DbTables>(connect());
 await db.insertOrThrow(
   "users",
   { user_id: 1, screen_name: "@alice", bio: "my name is alice", age: 100 },
-  { user_id: 2, screen_name: "@bob" }
+  { user_id: 2, screen_name: "@bob", bio: null, age: 99 }
 );
 ```
 

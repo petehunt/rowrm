@@ -304,9 +304,10 @@ export async function codegenTypes(
       } else if (columnType.includes("bool") || columnType.includes("bit")) {
         baseType = "number";
       }
-      // while technically primary keys could be null, let's not allow that
-      const optional = !column.notnull && !column.dflt_value && !column.pk;
-      accum.push(`    ${column.name}${optional ? "?" : ""}: ${baseType};`);
+      // TODO: allow optional fields
+      // for now, don't allow nullable primary keys. seems like a bad practice.
+      const nullable = column.notnull || column.pk ? "" : " | null";
+      accum.push(`    ${column.name}: ${baseType}${nullable};`);
     }
     accum.push(`  },`);
   }

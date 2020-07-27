@@ -16,13 +16,13 @@ interface DbTables {
     photo_id: number;
     owner_user_id: number;
     cdn_url: string;
-    caption?: string;
+    caption: string | null;
   },
   users: {
     user_id: number;
     screen_name: string;
-    bio?: string;
-    age?: number;
+    bio: string | null;
+    age: number | null;
   },
 }
   `.trim()
@@ -34,13 +34,13 @@ interface DbTables {
     photo_id: number;
     owner_user_id: number;
     cdn_url: string;
-    caption?: string;
+    caption: string | null;
   };
   users: {
     user_id: number;
     screen_name: string;
-    bio?: string;
-    age?: number;
+    bio: string | null;
+    age: number | null;
   };
 }
 
@@ -50,7 +50,7 @@ test("smoke test", async (t) => {
   await db.insertOrThrow(
     "users",
     { user_id: 1, screen_name: "@alice", bio: "my name is alice", age: 100 },
-    { user_id: 2, screen_name: "@bob", age: 99 }
+    { user_id: 2, screen_name: "@bob", age: 99, bio: null }
   );
   await db.insertOrThrow(
     "photos",
@@ -58,6 +58,7 @@ test("smoke test", async (t) => {
       photo_id: 1,
       cdn_url: "cdn.com/1.jpg",
       owner_user_id: 1,
+      caption: null,
     },
     {
       photo_id: 2,
