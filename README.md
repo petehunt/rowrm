@@ -1,6 +1,6 @@
-# rowrm
+# st-orm: the Single Table Object-Relational Mapper
 
-`rowrm` is a library for really convenient, typesafe access to databases where you only need to `insert`, `delete`, `update`, and `select * from one_table where ...`. a lot of apps fit into this category!
+`st-orm` is a library for really convenient, typesafe access to databases where you only need to `insert`, `delete`, `update`, and `select * from one_table where ...`. a lot of apps fit into this category!
 
 ## cool features
 
