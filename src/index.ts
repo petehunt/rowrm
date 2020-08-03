@@ -17,8 +17,11 @@ interface Queryable {
 
 class DbError extends Error {}
 
-export class Db<TTables> {
-  constructor(public readonly underlyingDb: Queryable) {}
+class Table<TRow> {
+  constructor(
+    public readonly underlyingDb: Queryable,
+    private tableName: string
+  ) {}
 
   /**
    * Issues a query directly to the underlying data store
@@ -33,10 +36,10 @@ export class Db<TTables> {
     }
   }
 
-  private async insert<TTableName extends keyof TTables>(
+  private async insert(
     command: Sql,
-    tableName: TTableName,
-    ...rows: TTables[TTableName][]
+
+    ...rows: TRow[]
   ): Promise<void> {
     await Promise.all(
       rows.map((row) => {
@@ -51,7 +54,7 @@ export class Db<TTables> {
         );
         return this.query(
           sql`${command} ${sql.ident(
-            tableName
+            this.tableName
           )} (${columnNames}) values (${values})`
         );
       })
@@ -61,41 +64,28 @@ export class Db<TTables> {
   /**
    * REPLACE INTO
    */
-  insertOrReplace<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    ...rows: TTables[TTableName][]
-  ): Promise<void> {
-    return this.insert(sql`replace into`, tableName, ...rows);
+  insertOrReplace(...rows: TRow[]): Promise<void> {
+    return this.insert(sql`replace into`, ...rows);
   }
 
   /**
    * INSERT OR IGNORE INTO
    */
-  insertOrIgnore<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    ...rows: TTables[TTableName][]
-  ): Promise<void> {
-    return this.insert(sql`insert or ignore into`, tableName, ...rows);
+  insertOrIgnore(...rows: TRow[]): Promise<void> {
+    return this.insert(sql`insert or ignore into`, ...rows);
   }
 
   /**
    * INSERT INTO
    */
-  insertOrThrow<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    ...rows: TTables[TTableName][]
-  ): Promise<void> {
-    return this.insert(sql`insert into`, tableName, ...rows);
+  insertOrThrow(...rows: TRow[]): Promise<void> {
+    return this.insert(sql`insert into`, ...rows);
   }
 
   /**
    * UPDATE with a SQL predicate
    */
-  async setBySql<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    where: Sql,
-    row: Partial<TTables[TTableName]>
-  ): Promise<TTables[TTableName][]> {
+  async setBySql(where: Sql, row: Partial<TRow>): Promise<TRow[]> {
     const setClause = sql.join(
       Object.entries(row).map(([columnName, value]) => {
         return sql`${sql.ident(columnName)} = ${value}`;
@@ -103,7 +93,7 @@ export class Db<TTables> {
       sql`, `
     );
     const rows = await this.query(
-      sql`update ${sql.ident(tableName)} set ${setClause} where ${where}`
+      sql`update ${sql.ident(this.tableName)} set ${setClause} where ${where}`
     );
     return rows;
   }
@@ -111,43 +101,32 @@ export class Db<TTables> {
   /**
    * UPDATE with a partial object predicate
    */
-  set<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    whereValues: Partial<TTables[TTableName]>,
-    updateValues: Partial<TTables[TTableName]>
-  ) {
-    return this.setBySql(tableName, this.rowToWhere(whereValues), updateValues);
+  set(whereValues: Partial<TRow>, updateValues: Partial<TRow>) {
+    return this.setBySql(this.rowToWhere(whereValues), updateValues);
   }
 
   /**
    * DELETE FROM with a SQL predicate
    */
-  async delBySql<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    where: Sql
-  ) {
-    await this.query(sql`delete from ${sql.ident(tableName)} where ${where}`);
+  async delBySql(where: Sql) {
+    await this.query(
+      sql`delete from ${sql.ident(this.tableName)} where ${where}`
+    );
   }
 
   /**
    * DELETE FROM with a partial object predicate
    */
-  async del<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    values: Partial<TTables[TTableName]>
-  ) {
-    await this.delBySql(tableName, this.rowToWhere(values));
+  async del(values: Partial<TRow>) {
+    await this.delBySql(this.rowToWhere(values));
   }
 
   /**
    * SELECT * with a SQL predicate
    */
-  async getAllBySql<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    where: Sql = sql`1`
-  ): Promise<TTables[TTableName][]> {
+  async getAllBySql(where: Sql = sql`1`): Promise<TRow[]> {
     const rows = await this.query(
-      sql`select * from ${sql.ident(tableName)} where ${where}`
+      sql`select * from ${sql.ident(this.tableName)} where ${where}`
     );
     return rows;
   }
@@ -155,11 +134,8 @@ export class Db<TTables> {
   /**
    * SELECT * with a SQL predicate, throws if > 1 row matches
    */
-  async getOneBySql<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    where: Sql = sql`1`
-  ): Promise<TTables[TTableName] | null> {
-    const rows = await this.getAllBySql(tableName, sql`${where} limit 2`);
+  async getOneBySql(where: Sql = sql`1`): Promise<TRow | null> {
+    const rows = await this.getAllBySql(sql`${where} limit 2`);
     invariant(rows.length < 2, "more than one row matched this query");
     if (rows.length !== 1) {
       return null;
@@ -170,11 +146,8 @@ export class Db<TTables> {
   /**
    * SELECT * with a SQL predicate, throws if < 1 or > 1 row matches
    */
-  async getOneBySqlOrThrow<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    where: Sql = sql`1`
-  ): Promise<TTables[TTableName]> {
-    const rv = await this.getOneBySql(tableName, where);
+  async getOneBySqlOrThrow(where: Sql = sql`1`): Promise<TRow> {
+    const rv = await this.getOneBySql(where);
     invariant(rv, "less than one row matched this query");
     return rv;
   }
@@ -195,15 +168,14 @@ export class Db<TTables> {
   /**
    * SELECT * with a partial object predicate
    */
-  async getAll<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    values: Partial<TTables[TTableName]>,
+  async getAll(
+    values: Partial<TRow>,
     options?: {
-      orderBy: keyof TTables[TTableName] | Array<keyof TTables[TTableName]>;
+      orderBy: keyof TRow | Array<keyof TRow>;
       direction?: "asc" | "desc";
       limit?: number;
     }
-  ): Promise<TTables[TTableName][]> {
+  ): Promise<TRow[]> {
     const where = this.rowToWhere(values);
     let query = where;
     if (options) {
@@ -240,18 +212,15 @@ export class Db<TTables> {
         query = sql`${query} limit ${options.limit}`;
       }
     }
-    const rows = this.getAllBySql(tableName, query);
+    const rows = this.getAllBySql(query);
     return rows;
   }
 
   /**
    * SELECT * with a partial object predicate, throws if > 1 row matches
    */
-  async getOne<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    values: Partial<TTables[TTableName]>
-  ): Promise<TTables[TTableName] | null> {
-    const rows = await this.getAll(tableName, values);
+  async getOne(values: Partial<TRow>): Promise<TRow | null> {
+    const rows = await this.getAll(values);
     invariant(rows.length < 2, "more than one row matched this query");
     if (rows.length !== 1) {
       return null;
@@ -262,14 +231,29 @@ export class Db<TTables> {
   /**
    * SELECT * with a partial object predicate, throws if < 1 or > 1 row matches
    */
-  async getOneOrThrow<TTableName extends keyof TTables>(
-    tableName: TTableName,
-    values: Partial<TTables[TTableName]>
-  ): Promise<TTables[TTableName]> {
-    const rv = await this.getOne(tableName, values);
+  async getOneOrThrow(values: Partial<TRow>): Promise<TRow> {
+    const rv = await this.getOne(values);
     invariant(rv, "less than one row matched this query");
     return rv;
   }
+}
+
+export function tables<TTables>(
+  connectionOrTransaction: Queryable
+): {
+  [TTableName in keyof TTables]: Table<TTables[TTableName]>;
+} {
+  return new Proxy(
+    {},
+    {
+      get: (target, prop, receiver) => {
+        if (prop === "then") {
+          return undefined;
+        }
+        return new Table(connectionOrTransaction, prop as string);
+      },
+    }
+  ) as any;
 }
 
 interface Column {

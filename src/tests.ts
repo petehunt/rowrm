@@ -1,5 +1,5 @@
 import connect, { sql } from "@databases/sqlite";
-import { Db, codegenTypes, runScript } from ".";
+import { tables, codegenTypes, runScript } from ".";
 import test from "tape-async";
 
 const SCHEMA = `
@@ -45,15 +45,16 @@ interface DbTables {
 }
 
 test("smoke test", async (t) => {
-  const db = new Db<DbTables>(connect());
-  await runScript(db.underlyingDb, SCHEMA);
-  await db.insertOrThrow(
-    "users",
+  const connection = connect();
+  await runScript(connection, SCHEMA);
+  const { users, photos } = tables<DbTables>(connection);
+
+  await users.insertOrThrow(
     { user_id: 1, screen_name: "@alice", bio: "my name is alice", age: 100 },
     { user_id: 2, screen_name: "@bob", age: 99, bio: null }
   );
-  await db.insertOrThrow(
-    "photos",
+
+  await photos.insertOrThrow(
     {
       photo_id: 1,
       cdn_url: "cdn.com/1.jpg",
@@ -68,14 +69,11 @@ test("smoke test", async (t) => {
     }
   );
 
-  const aliceByPkey = await db.getOne("users", { user_id: 1 });
-  const aliceByScreenName = await db.getOne("users", {
+  const aliceByPkey = await users.getOne({ user_id: 1 });
+  const aliceByScreenName = await users.getOne({
     screen_name: "@alice",
   });
-  const aliceBySql = await db.getOneBySql(
-    "users",
-    sql`bio=${"my name is alice"}`
-  );
+  const aliceBySql = await users.getOneBySql(sql`bio=${"my name is alice"}`);
   t.deepEqual(aliceByPkey, {
     user_id: 1,
     screen_name: "@alice",
@@ -86,10 +84,10 @@ test("smoke test", async (t) => {
   t.deepEqual(aliceByPkey, aliceBySql);
 
   // fetch many
-  const aliceByMany = await db.getAllBySql("users", sql`screen_name='@alice'`);
+  const aliceByMany = await users.getAllBySql(sql`screen_name='@alice'`);
   t.deepEqual(aliceByMany, [aliceByPkey]);
 
-  const photosByAlice = await db.getAll("photos", { owner_user_id: 1 });
+  const photosByAlice = await photos.getAll({ owner_user_id: 1 });
   t.deepEqual(photosByAlice, [
     { photo_id: 1, owner_user_id: 1, cdn_url: "cdn.com/1.jpg", caption: null },
     {
@@ -100,13 +98,12 @@ test("smoke test", async (t) => {
     },
   ]);
 
-  const photosByBob = await db.getAll("photos", { owner_user_id: 2 });
+  const photosByBob = await photos.getAll({ owner_user_id: 2 });
   t.deepEqual(photosByBob, []);
 
   // inequality with ordering
   const ELDERLY_AGE = 100;
-  const elderlyUsers = await db.getAllBySql(
-    "users",
+  const elderlyUsers = await users.getAllBySql(
     sql`age >= ${ELDERLY_AGE} ORDER BY age DESC`
   );
   t.deepEqual(elderlyUsers, [
@@ -114,19 +111,18 @@ test("smoke test", async (t) => {
   ]);
 
   // raw untyped query
-  const [{ maxAge }] = await db.query(
+  const [{ maxAge }] = await connection.query(
     sql`select max(age) as maxAge from users`
   );
   t.equal(maxAge, 100);
 
   // order by / limit
-  const usersOrderedByAgeAsc = await db.getAll("users", {}, { orderBy: "age" });
+  const usersOrderedByAgeAsc = await users.getAll({}, { orderBy: "age" });
   t.deepEqual(
     usersOrderedByAgeAsc.map((user) => user.screen_name),
     ["@bob", "@alice"]
   );
-  const usersOrderedByAgeDesc = await db.getAll(
-    "users",
+  const usersOrderedByAgeDesc = await users.getAll(
     {},
     { orderBy: "age", direction: "desc" }
   );
@@ -134,8 +130,7 @@ test("smoke test", async (t) => {
     usersOrderedByAgeDesc.map((user) => user.screen_name),
     ["@alice", "@bob"]
   );
-  const oldestUser = await db.getAll(
-    "users",
+  const oldestUser = await users.getAll(
     {},
     { orderBy: ["age"], limit: 1, direction: "desc" }
   );
@@ -143,20 +138,20 @@ test("smoke test", async (t) => {
   t.equal(oldestUser[0].screen_name, "@alice");
 
   // update / delete
-  await db.set("users", { user_id: 1 }, { bio: "bio deleted", age: 200 });
-  t.deepEqual(await db.getOne("users", { user_id: 1 }), {
+  await users.set({ user_id: 1 }, { bio: "bio deleted", age: 200 });
+  t.deepEqual(await users.getOne({ user_id: 1 }), {
     user_id: 1,
     screen_name: "@alice",
     bio: "bio deleted",
     age: 200,
   });
 
-  await db.del("photos", { owner_user_id: 1 });
-  t.deepEqual(await db.getAll("photos", { owner_user_id: 1 }), []);
+  await photos.del({ owner_user_id: 1 });
+  t.deepEqual(await photos.getAll({ owner_user_id: 1 }), []);
 
-  t.equal(await db.getOne("users", { user_id: 4 }), null);
+  t.equal(await users.getOne({ user_id: 4 }), null);
   try {
-    await db.getOneOrThrow("users", { user_id: 4 });
+    await users.getOneOrThrow({ user_id: 4 });
     t.fail();
   } catch (e) {
     t.equal(
@@ -165,6 +160,6 @@ test("smoke test", async (t) => {
     );
   }
 
-  await db.getOneOrThrow("users", { user_id: 1 });
+  await users.getOneOrThrow({ user_id: 1 });
   t.pass();
 });

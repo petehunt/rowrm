@@ -1,6 +1,5 @@
 # rowrm
 
-
 `rowrm` is a single-table [ORM](https://en.wikipedia.org/wiki/Object-relational_mapping) built on top of [@databases](https://www.atdatabases.org/) in TypeScript.
 
 more specifically, `rowrm` is a library for really convenient, typesafe access to databases where you only need to `insert`, `delete`, `update`, and `select * from one_table where ...`. a lot of apps fit into this category!
@@ -64,10 +63,10 @@ interface DbTables {
 ## example: insert some data
 
 ```
-const db = new Db<DbTables>(connect());
-// the rows below are typechecked based on the name of the table
-await db.insertOrThrow(
-  "users",
+const connection = connect();
+const { users, photos } = tables<DbTables>(connection);
+// the rows below are typechecked based on the table schema
+await users.insertOrThrow(
   { user_id: 1, screen_name: "@alice", bio: "my name is alice", age: 100 },
   { user_id: 2, screen_name: "@bob", bio: null, age: 99 }
 );
@@ -77,10 +76,17 @@ await db.insertOrThrow(
 
 ```
 // aliceByPkey is of type DbTables["users"] | null
-const aliceByPkey = await db.getOne("users", { user_id: 1 });
+const aliceByPkey = await users.getOne({ user_id: 1 });
 
 // photosByAlice is of type DbTables["photos"][]
-const photosByAlice = await db.getAll("photos", { owner_user_id: 1 });
+const photosByAlice = await photos.getAll({ owner_user_id: 1 });
+
+// you can add sorting criteria as well. all typesafe!
+// you can provide an array of `orderBy` columns if you want to sort by multiple columns
+const oldestUser = await users.getAll(
+  {},
+  { orderBy: "age", limit: 1, direction: "desc" }
+);
 ```
 
 ## example: drop into raw SQL for WHERE clauses
@@ -88,21 +94,21 @@ const photosByAlice = await db.getAll("photos", { owner_user_id: 1 });
 ```
 const ELDERLY_AGE = 100;
 // elderlyUsers is of type DbTables["users"][]
-const elderlyUsers = await db.getAllBySql("users", sql`age >= ${ELDERLY_AGE} ORDER BY age DESC`);
+const elderlyUsers = await users.getAllBySql(sql`age >= ${ELDERLY_AGE} ORDER BY age DESC`);
 ```
 
 ## example: issue untyped raw queries
 
 ```
 // maxAge is of type any
-const [{ maxAge }] = await db.query(sql`select max(age) as maxAge from users`)
+const [{ maxAge }] = await connection.query(sql`select max(age) as maxAge from users`)
 ```
 
 ## example: update / delete
 
 ```
-await db.set("users", { user_id: 1 }, { bio: "bio deleted", age: 200 });
-await db.del("photos", { owner_user_id: 1 });
+await users.set({ user_id: 1 }, { bio: "bio deleted", age: 200 });
+await photos.del({ owner_user_id: 1 });
 // you can also call setBySql() and delBySql(), similar to `getOneBySql()` and `getAllBySql()`
 ```
 
@@ -113,8 +119,9 @@ await db.del("photos", { owner_user_id: 1 });
 in-database joins add a ton of both interface and implementation complexity. with `rowrm`, you should do your joins "in the app" by beginning a transaction, fetching the rows in the first table, and then looping through and querying for the rows in the joined table.
 
 this pattern isn't actually that crazy; keith adams, chief architect at slack and former tech lead at FB explains why in [this podcast](https://softwareengineeringdaily.com/2019/07/15/facebook-php-with-keith-adams/). but long story short, "in-app joins" are often the right call because:
-* as your application logic gets more complicated, you will often have to move your joins into the app to manage the complexity. a great example is access control based on the currently logged in user, or other complex business logic.
-* if you want to add a caching layer to your app or horizontal sharding, you will need to move your joins into the app.
+
+- as your application logic gets more complicated, you will often have to move your joins into the app to manage the complexity. a great example is access control based on the currently logged in user, or other complex business logic.
+- if you want to add a caching layer to your app or horizontal sharding, you will need to move your joins into the app.
 
 it's true that sometimes there are cases when you really need to do joins and can't do it in the app, but it's pretty rare. for those situations, issue a raw query using `db.query()`.
 
