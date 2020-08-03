@@ -11,6 +11,10 @@ more specifically, `rowrm` is a library for really convenient, typesafe access t
 - fully type-safe, with full autocompletion
 - lots of escape hatches to drop into raw SQL when you need it
 
+## credit
+
+thanks to josh yudaken for the original idea, and the first production implementation.
+
 ## limitations
 
 - not used much in production (but there's very little code so it's probably safe)
