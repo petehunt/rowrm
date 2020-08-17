@@ -21,7 +21,7 @@ thanks to josh yudaken for the original idea, and the first production implement
 
 ## example: generating TypeScript interfaces for your SQL schema
 
-```
+```ts
 console.log(
   await codegenTypes(`
     create table users (
@@ -43,7 +43,7 @@ console.log(
 
 emits:
 
-```
+```ts
 interface DbTables {
   photos: {
     photo_id: number;
@@ -62,7 +62,7 @@ interface DbTables {
 
 ## example: insert some data
 
-```
+```ts
 const connection = connect();
 const { users, photos } = tables<DbTables>(connection);
 // the rows below are typechecked based on the table schema
@@ -74,7 +74,7 @@ await users.insertOrThrow(
 
 ## example: concisely select some data
 
-```
+```ts
 // aliceByPkey is of type DbTables["users"] | null
 const aliceByPkey = await users.getOne({ user_id: 1 });
 
@@ -91,7 +91,7 @@ const oldestUser = await users.getAll(
 
 ## example: drop into raw SQL for WHERE clauses
 
-```
+```ts
 const ELDERLY_AGE = 100;
 // elderlyUsers is of type DbTables["users"][]
 const elderlyUsers = await users.getAllBySql(sql`age >= ${ELDERLY_AGE} ORDER BY age DESC`);
@@ -99,14 +99,14 @@ const elderlyUsers = await users.getAllBySql(sql`age >= ${ELDERLY_AGE} ORDER BY 
 
 ## example: issue untyped raw queries
 
-```
+```ts
 // maxAge is of type any
 const [{ maxAge }] = await connection.query(sql`select max(age) as maxAge from users`)
 ```
 
 ## example: update / delete
 
-```
+```ts
 await users.set({ user_id: 1 }, { bio: "bio deleted", age: 200 });
 await photos.del({ owner_user_id: 1 });
 // you can also call setBySql() and delBySql(), similar to `getOneBySql()` and `getAllBySql()`
